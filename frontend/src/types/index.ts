@@ -49,7 +49,7 @@ export type Campaign = {
   subject?: string;
   htmlBody?: string;
   textBody?: string;
-  attachmentsJson?: string;
+  attachmentsJson?: string | null;
 };
 
 export type Approval = {
@@ -95,8 +95,8 @@ export type SmtpAccount = {
   provider: string;
   host: string;
   port: number;
-  username?: string;
-  password?: string;
+  username?: string | null;
+  password?: string | null;
   useTls: boolean;
   throttlePerMinute: number;
 };

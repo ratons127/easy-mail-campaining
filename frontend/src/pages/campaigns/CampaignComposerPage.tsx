@@ -64,6 +64,7 @@ export default function CampaignComposerPage() {
   });
 
   const selectedAudienceId = form.watch("audienceIds")?.[0];
+  const previewSample = preview?.sample ?? [];
 
   useEffect(() => {
     setPreview(null);
@@ -289,9 +290,9 @@ export default function CampaignComposerPage() {
             <div className="text-xs text-muted">
               Estimated recipients: {preview?.count ?? recipientEstimate}
             </div>
-            {preview?.sample?.length > 0 && (
+            {previewSample.length > 0 && (
               <div className="text-xs text-muted">
-                Sample: {preview.sample.slice(0, 3).map((p) => p.email || p.fullName || "Recipient").join(", ")}
+                Sample: {previewSample.slice(0, 3).map((p) => p.email || p.fullName || "Recipient").join(", ")}
               </div>
             )}
           </section>

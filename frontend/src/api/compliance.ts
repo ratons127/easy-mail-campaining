@@ -1,5 +1,5 @@
 import apiClient from "../lib/apiClient";
-import { SuppressionEntry } from "../types";
+import { AuditLog, SuppressionEntry } from "../types";
 
 export async function fetchSuppression() {
   const { data } = await apiClient.get<SuppressionEntry[]>("/api/suppression");
@@ -17,6 +17,6 @@ export async function removeSuppression(email: string) {
 }
 
 export async function fetchAuditLogs(params?: Record<string, any>) {
-  const { data } = await apiClient.get("/api/audit-logs", { params });
+  const { data } = await apiClient.get<AuditLog[]>("/api/audit-logs", { params });
   return data;
 }

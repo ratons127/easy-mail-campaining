@@ -12,7 +12,10 @@ import { AuditLog } from "../../types";
 
 export default function AuditLogsPage() {
   const [selected, setSelected] = useState<AuditLog | null>(null);
-  const { data: logs = [], isError } = useQuery({ queryKey: ["auditLogs"], queryFn: () => fetchAuditLogs() });
+  const { data: logs = [], isError } = useQuery<AuditLog[]>({
+    queryKey: ["auditLogs"],
+    queryFn: () => fetchAuditLogs()
+  });
 
   return (
     <div className="space-y-6">
