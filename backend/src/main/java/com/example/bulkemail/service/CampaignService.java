@@ -75,6 +75,7 @@ public class CampaignService {
     }
 
     public CampaignResponse create(CampaignCreateRequest request, String ip, String userAgent) {
+        validateCampaignSmtpSelection(request.getSmtpAccountId(), request.getSenderIdentityId());
         Campaign campaign = new Campaign();
         campaign.setTitle(request.getTitle());
         campaign.setSubject(request.getSubject());
@@ -97,9 +98,18 @@ public class CampaignService {
     public CampaignResponse update(Long campaignId, CampaignUpdateRequest request, String ip, String userAgent) {
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new IllegalArgumentException("Campaign not found"));
-        if (campaign.getStatus() != CampaignStatus.DRAFT) {
-            throw new IllegalStateException("Campaign not in draft");
+        if (campaign.getStatus() != CampaignStatus.DRAFT && campaign.getStatus() != CampaignStatus.COMPLETED) {
+            throw new IllegalStateException("Campaign not editable");
         }
+        if (campaign.getStatus() == CampaignStatus.COMPLETED) {
+            campaign.setStatus(CampaignStatus.DRAFT);
+            campaign.setScheduledAt(null);
+            campaign.setSendWindowStart(null);
+            campaign.setSendWindowEnd(null);
+            campaign.setEmergencyBypass(false);
+            campaign.setEmergencyReason(null);
+        }
+        validateCampaignSmtpSelection(request.getSmtpAccountId(), request.getSenderIdentityId());
         campaign.setTitle(request.getTitle());
         campaign.setSubject(request.getSubject());
         campaign.setHtmlBody(request.getHtmlBody());
@@ -116,6 +126,45 @@ public class CampaignService {
         Campaign saved = campaignRepository.save(campaign);
         auditService.logAction("CAMPAIGN_UPDATE", "campaign", saved.getId().toString(), null, saved, ip, userAgent);
         return toResponse(saved);
+    }
+
+    @Transactional
+    public CampaignResponse duplicate(Long campaignId, String ip, String userAgent) {
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new IllegalArgumentException("Campaign not found"));
+        Campaign copy = new Campaign();
+        copy.setTitle(campaign.getTitle());
+        copy.setSubject(campaign.getSubject());
+        copy.setHtmlBody(campaign.getHtmlBody());
+        copy.setTextBody(campaign.getTextBody());
+        copy.setCategory(campaign.getCategory());
+        copy.setSenderIdentity(campaign.getSenderIdentity());
+        copy.setSmtpAccount(campaign.getSmtpAccount());
+        copy.setStatus(CampaignStatus.DRAFT);
+        copy.setAttachmentsJson(campaign.getAttachmentsJson());
+        copy.setCreatedBy(SecurityUtil.currentEmail());
+        copy.setCreatedAt(Instant.now());
+        Campaign saved = campaignRepository.save(copy);
+        List<Long> audienceIds = campaignAudienceRepository.findByCampaignId(campaignId).stream()
+                .map(link -> link.getAudience().getId())
+                .distinct()
+                .toList();
+        if (!audienceIds.isEmpty()) {
+            saveAudienceLinks(saved, audienceIds);
+        }
+        auditService.logAction("CAMPAIGN_DUPLICATE", "campaign", saved.getId().toString(), null, saved, ip, userAgent);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void requeue(Long campaignId, String ip, String userAgent) {
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new IllegalArgumentException("Campaign not found"));
+        campaignRecipientRepository.resetForCampaign(campaignId, RecipientStatus.QUEUED, Instant.now());
+        campaign.setStatus(CampaignStatus.SENDING);
+        campaign.setUpdatedAt(Instant.now());
+        campaignRepository.save(campaign);
+        auditService.logAction("CAMPAIGN_REQUEUE", "campaign", campaign.getId().toString(), null, campaign, ip, userAgent);
     }
 
     @Transactional
@@ -272,6 +321,18 @@ public class CampaignService {
             return;
         }
         approvalService.createPending(campaign, Role.APPROVER);
+    }
+
+    private void validateCampaignSmtpSelection(Long smtpAccountId, Long senderIdentityId) {
+        var settings = policySettingsService.getEffectiveSettings();
+        Long notificationSmtpId = settings.getNotificationSmtpAccountId();
+        Long notificationSenderId = settings.getNotificationSenderIdentityId();
+        if (notificationSmtpId != null && notificationSmtpId != 0 && notificationSmtpId.equals(smtpAccountId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Notification SMTP account cannot be used for campaigns");
+        }
+        if (notificationSenderId != null && notificationSenderId != 0 && notificationSenderId.equals(senderIdentityId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Notification sender identity cannot be used for campaigns");
+        }
     }
 
     @Transactional

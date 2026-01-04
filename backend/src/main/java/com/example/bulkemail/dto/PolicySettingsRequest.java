@@ -27,4 +27,12 @@ public class PolicySettingsRequest {
     @NotNull
     @Min(1)
     private Integer sendWindowHours;
+
+    @Schema(example = "1")
+    @Min(0)
+    private Long notificationSmtpAccountId;
+
+    @Schema(example = "1")
+    @Min(0)
+    private Long notificationSenderIdentityId;
 }

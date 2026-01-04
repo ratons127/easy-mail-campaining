@@ -4,14 +4,16 @@ import PageHeader from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { fetchPolicySettings, updatePolicySettings } from "../../api/settings";
-import { PolicySettings } from "../../types";
+import { fetchPolicySettings, fetchSenderIdentities, fetchSmtpAccounts, updatePolicySettings } from "../../api/settings";
+import { PolicySettings, SenderIdentity, SmtpAccount } from "../../types";
 import { useToast } from "../../hooks/useToast";
 import ServerErrorBanner from "../../components/ServerErrorBanner";
 
 export default function PoliciesPage() {
   const { push } = useToast();
   const { data, isError } = useQuery({ queryKey: ["policies"], queryFn: fetchPolicySettings });
+  const { data: smtpAccounts = [] } = useQuery({ queryKey: ["smtp"], queryFn: fetchSmtpAccounts });
+  const { data: senderIdentities = [] } = useQuery({ queryKey: ["senderIdentities"], queryFn: fetchSenderIdentities });
   const [form, setForm] = useState<PolicySettings | null>(null);
 
   useEffect(() => {
@@ -35,6 +37,13 @@ export default function PoliciesPage() {
       return;
     }
     mutation.mutate(form);
+  };
+
+  const notificationSenderOptions = (accountId?: number | null) => {
+    if (!accountId) {
+      return senderIdentities;
+    }
+    return senderIdentities.filter((identity) => identity.smtpAccountId === accountId);
   };
 
   return (
@@ -112,6 +121,50 @@ export default function PoliciesPage() {
                   updateField("sendWindowHours", value === "" ? 0 : Number(value));
                 }}
               />
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">Notification email</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs text-muted">SMTP account</label>
+              <Select
+                value={String(form?.notificationSmtpAccountId ?? 0)}
+                onValueChange={(value) =>
+                  updateField("notificationSmtpAccountId", value === "0" ? null : Number(value))
+                }
+              >
+                <SelectTrigger><SelectValue placeholder="Select SMTP account" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Not set</SelectItem>
+                  {smtpAccounts.map((account: SmtpAccount) => (
+                    <SelectItem key={account.id} value={String(account.id)}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Sender identity</label>
+              <Select
+                value={String(form?.notificationSenderIdentityId ?? 0)}
+                onValueChange={(value) =>
+                  updateField("notificationSenderIdentityId", value === "0" ? null : Number(value))
+                }
+              >
+                <SelectTrigger><SelectValue placeholder="Select sender identity" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Not set</SelectItem>
+                  {notificationSenderOptions(form?.notificationSmtpAccountId).map((identity: SenderIdentity) => (
+                    <SelectItem key={identity.id} value={String(identity.id)}>
+                      {identity.displayName} ({identity.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </section>

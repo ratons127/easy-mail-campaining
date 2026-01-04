@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import FilterBar from "../../components/FilterBar";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchAudiences, previewAudience } from "../../api/audiences";
-import { fetchSmtpAccounts, fetchSenderIdentities } from "../../api/settings";
+import { fetchPolicySettings, fetchSmtpAccounts, fetchSenderIdentities } from "../../api/settings";
 import { createCampaign, fetchCampaign, submitCampaign, testSend, updateCampaign, uploadCampaignAttachment } from "../../api/campaigns";
 import { useToast } from "../../hooks/useToast";
 
@@ -52,6 +52,7 @@ export default function CampaignComposerPage() {
   const { data: audiences = [] } = useQuery({ queryKey: ["audiences"], queryFn: fetchAudiences });
   const { data: smtpAccounts = [] } = useQuery({ queryKey: ["smtp"], queryFn: fetchSmtpAccounts });
   const { data: senderIdentities = [] } = useQuery({ queryKey: ["senders"], queryFn: fetchSenderIdentities });
+  const { data: policySettings } = useQuery({ queryKey: ["policies"], queryFn: fetchPolicySettings });
   const { data: campaign } = useQuery({
     queryKey: ["campaign", localCampaignId],
     queryFn: () => fetchCampaign(localCampaignId!),
@@ -65,6 +66,26 @@ export default function CampaignComposerPage() {
 
   const selectedAudienceId = form.watch("audienceIds")?.[0];
   const previewSample = preview?.sample ?? [];
+  const notificationSmtpId = policySettings?.notificationSmtpAccountId ?? null;
+  const notificationSenderId = policySettings?.notificationSenderIdentityId ?? null;
+  const availableSmtpAccounts = useMemo(
+    () => (notificationSmtpId ? smtpAccounts.filter((s) => s.id !== notificationSmtpId) : smtpAccounts),
+    [smtpAccounts, notificationSmtpId]
+  );
+  const availableSenderIdentities = useMemo(() => {
+    if (!notificationSmtpId && !notificationSenderId) {
+      return senderIdentities;
+    }
+    return senderIdentities.filter((s) => {
+      if (notificationSenderId && s.id === notificationSenderId) {
+        return false;
+      }
+      if (notificationSmtpId && s.smtpAccountId === notificationSmtpId) {
+        return false;
+      }
+      return true;
+    });
+  }, [senderIdentities, notificationSmtpId, notificationSenderId]);
 
   useEffect(() => {
     setPreview(null);
@@ -240,7 +261,7 @@ export default function CampaignComposerPage() {
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
-                        {senderIdentities.map((s) => (
+                        {availableSenderIdentities.map((s) => (
                           <SelectItem key={s.id} value={String(s.id)}>{s.displayName}</SelectItem>
                         ))}
                       </SelectContent>
@@ -257,7 +278,7 @@ export default function CampaignComposerPage() {
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
-                        {smtpAccounts.map((s) => (
+                        {availableSmtpAccounts.map((s) => (
                           <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
                         ))}
                       </SelectContent>

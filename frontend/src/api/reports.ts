@@ -11,3 +11,8 @@ export async function exportCampaignRecipients(campaignId: number) {
   });
   return data;
 }
+
+export async function fetchCampaignRecipients(campaignId: number) {
+  const { data } = await apiClient.get(`/api/reports/campaigns/${campaignId}/recipients`);
+  return data;
+}

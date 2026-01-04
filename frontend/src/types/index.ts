@@ -69,6 +69,15 @@ export type CampaignRecipient = {
   lastError?: string;
 };
 
+export type CampaignRecipientReport = {
+  email: string;
+  fullName?: string | null;
+  status: string;
+  lastError?: string | null;
+  retryCount?: number | null;
+  updatedAt?: string | null;
+};
+
 export type SuppressionEntry = {
   id: number;
   email: string;
@@ -114,4 +123,6 @@ export type PolicySettings = {
   maxTestRecipients: number;
   defaultThrottlePerMinute: number;
   sendWindowHours: number;
+  notificationSmtpAccountId?: number | null;
+  notificationSenderIdentityId?: number | null;
 };

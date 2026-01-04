@@ -61,7 +61,8 @@ const navGroups = [
     icon: BarChart3,
     items: [
       { label: "Delivery summary", to: "/reports/delivery", roles: [] as Role[] },
-      { label: "Campaign analytics", to: "/reports/analytics", roles: [] as Role[] }
+      { label: "Campaign analytics", to: "/reports/analytics", roles: [] as Role[] },
+      { label: "Recipient log", to: "/reports/recipients", roles: [] as Role[] }
     ]
   },
   {

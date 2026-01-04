@@ -6,6 +6,7 @@ import com.example.bulkemail.dto.PolicySettingsRequest;
 import com.example.bulkemail.dto.PolicySettingsResponse;
 import com.example.bulkemail.entity.SenderIdentity;
 import com.example.bulkemail.entity.SmtpAccount;
+import com.example.bulkemail.repo.CampaignRepository;
 import com.example.bulkemail.repo.SenderIdentityRepository;
 import com.example.bulkemail.repo.SmtpAccountRepository;
 import com.example.bulkemail.service.PolicySettingsService;
@@ -26,12 +27,15 @@ public class AdminController {
     private final SmtpAccountRepository smtpAccountRepository;
     private final SenderIdentityRepository senderIdentityRepository;
     private final PolicySettingsService policySettingsService;
+    private final CampaignRepository campaignRepository;
 
     public AdminController(SmtpAccountRepository smtpAccountRepository, SenderIdentityRepository senderIdentityRepository,
-                           PolicySettingsService policySettingsService) {
+                           PolicySettingsService policySettingsService,
+                           CampaignRepository campaignRepository) {
         this.smtpAccountRepository = smtpAccountRepository;
         this.senderIdentityRepository = senderIdentityRepository;
         this.policySettingsService = policySettingsService;
+        this.campaignRepository = campaignRepository;
     }
 
     @PostMapping("/smtp-accounts")
@@ -50,6 +54,16 @@ public class AdminController {
     @DeleteMapping("/smtp-accounts/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','HR_ADMIN')")
     public void deleteSmtpAccount(@PathVariable Long id) {
+        var settings = policySettingsService.getEffectiveSettings();
+        if (settings.getNotificationSmtpAccountId() != null && settings.getNotificationSmtpAccountId().equals(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "SMTP account used for notifications");
+        }
+        if (senderIdentityRepository.countBySmtpAccount_Id(id) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "SMTP account has sender identities");
+        }
+        if (campaignRepository.countBySmtpAccount_Id(id) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "SMTP account used by campaigns");
+        }
         smtpAccountRepository.deleteById(id);
     }
 
@@ -83,6 +97,13 @@ public class AdminController {
     @DeleteMapping("/sender-identities/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','HR_ADMIN')")
     public void deleteSenderIdentity(@PathVariable Long id) {
+        var settings = policySettingsService.getEffectiveSettings();
+        if (settings.getNotificationSenderIdentityId() != null && settings.getNotificationSenderIdentityId().equals(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Sender identity used for notifications");
+        }
+        if (campaignRepository.countBySenderIdentity_Id(id) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Sender identity used by campaigns");
+        }
         senderIdentityRepository.deleteById(id);
     }
 

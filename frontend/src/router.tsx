@@ -14,6 +14,7 @@ import CampaignComposerPage from "./pages/campaigns/CampaignComposerPage";
 import ApprovalsPage from "./pages/approvals/ApprovalsPage";
 import ReportsDeliveryPage from "./pages/reports/ReportsDeliveryPage";
 import ReportsCampaignPage from "./pages/reports/ReportsCampaignPage";
+import ReportsRecipientsPage from "./pages/reports/ReportsRecipientsPage";
 import SuppressionPage from "./pages/compliance/SuppressionPage";
 import AuditLogsPage from "./pages/compliance/AuditLogsPage";
 import SenderIdentitiesPage from "./pages/settings/SenderIdentitiesPage";
@@ -58,6 +59,7 @@ export function AppRouter() {
           <Route path="/approvals" element={<ApprovalsPage />} />
           <Route path="/reports/delivery" element={<ReportsDeliveryPage />} />
           <Route path="/reports/analytics" element={<ReportsCampaignPage />} />
+          <Route path="/reports/recipients" element={<ReportsRecipientsPage />} />
           <Route path="/compliance/suppression" element={<SuppressionPage />} />
           <Route path="/compliance/audit" element={<AuditLogsPage />} />
           <Route element={<RequireAuth roles={["SUPER_ADMIN", "HR_ADMIN"]} />}>

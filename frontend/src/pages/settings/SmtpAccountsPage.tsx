@@ -74,7 +74,10 @@ export default function SmtpAccountsPage() {
       setOpen(false);
       setSelected(null);
     },
-    onError: () => push({ title: "Failed to save", variant: "error" })
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || error?.response?.data?.error || "Failed to save";
+      push({ title: "Failed to save", description: message, variant: "error" });
+    }
   });
 
   const deleteMutation = useMutation({
@@ -86,7 +89,10 @@ export default function SmtpAccountsPage() {
       push({ title: "SMTP account deleted", variant: "success" });
       setSelectedRows({});
     },
-    onError: () => push({ title: "Delete failed", variant: "error" })
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || error?.response?.data?.error || "Delete failed";
+      push({ title: "Delete failed", description: message, variant: "error" });
+    }
   });
 
   return (
@@ -183,7 +189,14 @@ export default function SmtpAccountsPage() {
         }
       >
         <form className="space-y-4">
-          {mutation.isError && <ServerErrorBanner message="Unable to save SMTP account." />}
+          {mutation.isError && (
+            <ServerErrorBanner
+              message={mutation.error && (mutation.error as any)?.response?.data?.message
+                ? (mutation.error as any).response.data.message
+                : "Unable to save SMTP account."
+              }
+            />
+          )}
           <div className="space-y-1">
             <label className="text-xs text-muted">Name</label>
             <Input {...form.register("name")} />

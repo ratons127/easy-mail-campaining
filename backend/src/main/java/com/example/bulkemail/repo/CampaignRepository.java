@@ -8,4 +8,8 @@ import java.util.List;
 
 public interface CampaignRepository extends JpaRepository<Campaign, Long> {
     List<Campaign> findByStatusIn(List<CampaignStatus> statuses);
+
+    long countBySmtpAccount_Id(Long smtpAccountId);
+
+    long countBySenderIdentity_Id(Long senderIdentityId);
 }

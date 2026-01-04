@@ -78,6 +78,13 @@ public class CampaignController {
         return "Queued";
     }
 
+    @PostMapping("/{id}/requeue")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','HR_ADMIN','DEPT_ADMIN','SENDER','APPROVER')")
+    public String requeue(@PathVariable Long id, HttpServletRequest http) {
+        campaignService.requeue(id, ip(http), userAgent(http));
+        return "Requeued";
+    }
+
     @PostMapping("/{id}/test-send")
     @PreAuthorize("isAuthenticated()")
     public String testSend(@PathVariable Long id, @Valid @RequestBody TestSendRequest request,
@@ -91,6 +98,12 @@ public class CampaignController {
     public String cancel(@PathVariable Long id, HttpServletRequest http) {
         campaignService.cancel(id, ip(http), userAgent(http));
         return "Cancelled";
+    }
+
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','HR_ADMIN','DEPT_ADMIN','SENDER')")
+    public CampaignResponse duplicate(@PathVariable Long id, HttpServletRequest http) {
+        return campaignService.duplicate(id, ip(http), userAgent(http));
     }
 
     @PostMapping(value = "/{id}/attachments", consumes = {"multipart/form-data"})

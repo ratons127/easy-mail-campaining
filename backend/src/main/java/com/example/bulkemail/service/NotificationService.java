@@ -18,17 +18,20 @@ import java.util.Properties;
 public class NotificationService {
     private final SmtpAccountRepository smtpAccountRepository;
     private final SenderIdentityRepository senderIdentityRepository;
-    private final Long smtpAccountId;
-    private final Long senderIdentityId;
+    private final PolicySettingsService policySettingsService;
+    private final Long envSmtpAccountId;
+    private final Long envSenderIdentityId;
 
     public NotificationService(SmtpAccountRepository smtpAccountRepository,
                                SenderIdentityRepository senderIdentityRepository,
-                               @Value("${app.notification.smtp-account-id:0}") Long smtpAccountId,
-                               @Value("${app.notification.sender-identity-id:0}") Long senderIdentityId) {
+                               PolicySettingsService policySettingsService,
+                               @Value("${app.notification.smtp-account-id:0}") Long envSmtpAccountId,
+                               @Value("${app.notification.sender-identity-id:0}") Long envSenderIdentityId) {
         this.smtpAccountRepository = smtpAccountRepository;
         this.senderIdentityRepository = senderIdentityRepository;
-        this.smtpAccountId = smtpAccountId;
-        this.senderIdentityId = senderIdentityId;
+        this.policySettingsService = policySettingsService;
+        this.envSmtpAccountId = envSmtpAccountId;
+        this.envSenderIdentityId = envSenderIdentityId;
     }
 
     public void sendLoginNotice(String toEmail) {
@@ -40,6 +43,9 @@ public class NotificationService {
     }
 
     private void sendMessage(String toEmail, String subject, String body) {
+        var settings = policySettingsService.getEffectiveSettings();
+        Long smtpAccountId = resolveSmtpAccountId(settings.getNotificationSmtpAccountId());
+        Long senderIdentityId = resolveSenderIdentityId(settings.getNotificationSenderIdentityId());
         if (smtpAccountId == null || smtpAccountId == 0 || senderIdentityId == null || senderIdentityId == 0) {
             throw new IllegalStateException("Notification SMTP settings are not configured");
         }
@@ -84,5 +90,13 @@ public class NotificationService {
         } catch (Exception e) {
             throw new IllegalStateException("SMTP send failed: " + e.getMessage(), e);
         }
+    }
+
+    private Long resolveSmtpAccountId(Long policyValue) {
+        return policyValue != null && policyValue != 0 ? policyValue : envSmtpAccountId;
+    }
+
+    private Long resolveSenderIdentityId(Long policyValue) {
+        return policyValue != null && policyValue != 0 ? policyValue : envSenderIdentityId;
     }
 }

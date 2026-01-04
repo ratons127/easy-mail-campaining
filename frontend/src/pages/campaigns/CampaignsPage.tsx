@@ -10,7 +10,7 @@ import StatusBadge from "../../components/StatusBadge";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { Input } from "../../components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { cancelCampaign, deleteCampaign, fetchCampaigns } from "../../api/campaigns";
+import { cancelCampaign, deleteCampaign, duplicateCampaign, fetchCampaigns, requeueCampaign } from "../../api/campaigns";
 import { Campaign } from "../../types";
 import { useToast } from "../../hooks/useToast";
 import { exportCampaignRecipients } from "../../api/reports";
@@ -45,6 +45,8 @@ export default function CampaignsPage() {
     () => Object.keys(selectedRows).filter((id) => selectedRows[Number(id)]),
     [selectedRows]
   );
+  const selectedCampaign = selectedIds.length === 1 ? filtered.find((c) => c.id === Number(selectedIds[0])) : null;
+  const canRequeue = selectedCampaign?.status === "COMPLETED";
 
   const cancelMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -70,6 +72,31 @@ export default function CampaignsPage() {
     onError: (error: any) => {
       const message = error?.response?.data?.message || "Delete failed";
       push({ title: "Delete failed", description: message, variant: "error" });
+    }
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (id: number) => duplicateCampaign(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      push({ title: "Campaign duplicated", variant: "success" });
+      navigate(`/campaigns/compose?id=${data.id}`);
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || "Duplicate failed";
+      push({ title: "Duplicate failed", description: message, variant: "error" });
+    }
+  });
+
+  const requeueMutation = useMutation({
+    mutationFn: async (id: number) => requeueCampaign(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      push({ title: "Campaign re-queued", variant: "success" });
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || "Re-queue failed";
+      push({ title: "Re-queue failed", description: message, variant: "error" });
     }
   });
 
@@ -99,13 +126,23 @@ export default function CampaignsPage() {
           { label: "New", onClick: () => navigate("/campaigns/compose") },
           {
             label: "Edit",
-            onClick: () => selected && navigate(`/campaigns/compose?id=${selected.id}`),
-            disabled: !selected
+            onClick: () => selectedCampaign && navigate(`/campaigns/compose?id=${selectedCampaign.id}`),
+            disabled: !selectedCampaign
           },
           {
             label: "Submit",
-            onClick: () => selected && navigate(`/campaigns/compose?id=${selected.id}`),
-            disabled: !selected
+            onClick: () => selectedCampaign && navigate(`/campaigns/compose?id=${selectedCampaign.id}`),
+            disabled: !selectedCampaign
+          },
+          {
+            label: "Resend (copy)",
+            onClick: () => selectedCampaign && duplicateMutation.mutate(selectedCampaign.id),
+            disabled: !selectedCampaign
+          },
+          {
+            label: "Re-queue",
+            onClick: () => selectedCampaign && requeueMutation.mutate(selectedCampaign.id),
+            disabled: !canRequeue
           },
           { label: "Cancel", onClick: () => setConfirmOpen(true), variant: "danger", disabled: selectedIds.length === 0 },
           { label: "Delete", onClick: () => setDeleteOpen(true), variant: "danger", disabled: selectedIds.length === 0 },

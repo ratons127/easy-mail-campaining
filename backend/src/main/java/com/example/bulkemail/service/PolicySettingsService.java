@@ -29,12 +29,15 @@ public class PolicySettingsService {
     public PolicySettingsResponse updateSettings(PolicySettingsRequest request) {
         validateOrgRule(request.getOrgWideRule());
         validateDepartmentRule(request.getDepartmentRule());
+        validateNotificationSettings(request.getNotificationSmtpAccountId(), request.getNotificationSenderIdentityId());
         PolicySettings settings = repository.findById(SETTINGS_ID).orElseGet(this::createDefault);
         settings.setOrgWideRule(request.getOrgWideRule());
         settings.setDepartmentRule(request.getDepartmentRule());
         settings.setMaxTestRecipients(request.getMaxTestRecipients());
         settings.setDefaultThrottlePerMinute(request.getDefaultThrottlePerMinute());
         settings.setSendWindowHours(request.getSendWindowHours());
+        settings.setNotificationSmtpAccountId(request.getNotificationSmtpAccountId());
+        settings.setNotificationSenderIdentityId(request.getNotificationSenderIdentityId());
         return toResponse(repository.save(settings));
     }
 
@@ -60,6 +63,8 @@ public class PolicySettingsService {
         response.setMaxTestRecipients(settings.getMaxTestRecipients());
         response.setDefaultThrottlePerMinute(settings.getDefaultThrottlePerMinute());
         response.setSendWindowHours(settings.getSendWindowHours());
+        response.setNotificationSmtpAccountId(settings.getNotificationSmtpAccountId());
+        response.setNotificationSenderIdentityId(settings.getNotificationSenderIdentityId());
         return response;
     }
 
@@ -78,6 +83,17 @@ public class PolicySettingsService {
         }
         if (!rule.equals("DEPT_ADMIN") && !rule.equals("APPROVER")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid department approval rule");
+        }
+    }
+
+    private void validateNotificationSettings(Long smtpAccountId, Long senderIdentityId) {
+        boolean hasSmtp = smtpAccountId != null && smtpAccountId != 0;
+        boolean hasSender = senderIdentityId != null && senderIdentityId != 0;
+        if (hasSmtp != hasSender) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Notification SMTP account and sender identity must both be set or both be empty"
+            );
         }
     }
 }

@@ -59,3 +59,13 @@ export async function cancelCampaign(id: number) {
   const { data } = await apiClient.post<string>(`/api/campaigns/${id}/cancel`);
   return data;
 }
+
+export async function duplicateCampaign(id: number) {
+  const { data } = await apiClient.post<Campaign>(`/api/campaigns/${id}/duplicate`);
+  return data;
+}
+
+export async function requeueCampaign(id: number) {
+  const { data } = await apiClient.post<string>(`/api/campaigns/${id}/requeue`);
+  return data;
+}

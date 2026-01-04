@@ -85,7 +85,10 @@ export default function AudiencesPage() {
       setSelected(null);
       setPreview(null);
     },
-    onError: () => push({ title: "Failed to save audience", variant: "error" })
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || error?.response?.data?.error || "Failed to save audience";
+      push({ title: "Failed to save audience", description: message, variant: "error" });
+    }
   });
 
   const deleteMutation = useMutation({
@@ -204,7 +207,14 @@ export default function AudiencesPage() {
         }
       >
         <form className="space-y-4">
-          {saveMutation.isError && <ServerErrorBanner message="Unable to save audience. Check rules and try again." />}
+          {saveMutation.isError && (
+            <ServerErrorBanner
+              message={saveMutation.error && (saveMutation.error as any)?.response?.data?.message
+                ? (saveMutation.error as any).response.data.message
+                : "Unable to save audience. Check rules and try again."
+              }
+            />
+          )}
           <div className="space-y-1">
             <label className="text-xs text-muted">Name</label>
             <Input {...form.register("name")} defaultValue={selected?.name} />

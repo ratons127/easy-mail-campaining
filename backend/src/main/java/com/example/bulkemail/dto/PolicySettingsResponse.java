@@ -9,4 +9,6 @@ public class PolicySettingsResponse {
     private Integer maxTestRecipients;
     private Integer defaultThrottlePerMinute;
     private Integer sendWindowHours;
+    private Long notificationSmtpAccountId;
+    private Long notificationSenderIdentityId;
 }

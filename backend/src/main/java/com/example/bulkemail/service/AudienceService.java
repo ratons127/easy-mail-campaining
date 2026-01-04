@@ -9,10 +9,13 @@ import com.example.bulkemail.security.SecurityUtil;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
@@ -45,6 +48,7 @@ public class AudienceService {
     }
 
     public AudienceResponse update(Long audienceId, AudienceCreateRequest request) {
+        ensureNotLinkedToActiveCampaigns(audienceId);
         Audience audience = audienceRepository.findById(audienceId)
                 .orElseThrow(() -> new IllegalArgumentException("Audience not found"));
         audience.setName(request.getName());
@@ -58,6 +62,7 @@ public class AudienceService {
     }
 
     public void delete(Long audienceId) {
+        ensureNotLinkedToActiveCampaigns(audienceId);
         campaignAudienceRepository.deleteByAudienceId(audienceId);
         audienceRuleRepository.deleteByAudienceId(audienceId);
         audienceRepository.deleteById(audienceId);
@@ -147,5 +152,18 @@ public class AudienceService {
         dto.setDepartmentId(employee.getDepartment() != null ? employee.getDepartment().getId() : null);
         dto.setLocationId(employee.getLocation() != null ? employee.getLocation().getId() : null);
         return dto;
+    }
+
+    private void ensureNotLinkedToActiveCampaigns(Long audienceId) {
+        List<CampaignStatus> activeStatuses = new ArrayList<>(EnumSet.of(
+                CampaignStatus.DRAFT,
+                CampaignStatus.PENDING_APPROVAL,
+                CampaignStatus.APPROVED,
+                CampaignStatus.SCHEDULED,
+                CampaignStatus.SENDING
+        ));
+        if (campaignAudienceRepository.countByAudienceIdAndCampaignStatusIn(audienceId, activeStatuses) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Audience linked to active campaigns");
+        }
     }
 }

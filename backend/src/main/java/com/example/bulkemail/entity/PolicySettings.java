@@ -29,4 +29,8 @@ public class PolicySettings {
 
     @Column(nullable = false)
     private Integer sendWindowHours;
+
+    private Long notificationSmtpAccountId;
+
+    private Long notificationSenderIdentityId;
 }

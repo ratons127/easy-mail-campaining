@@ -1,5 +1,6 @@
 package com.example.bulkemail.api;
 
+import com.example.bulkemail.dto.CampaignRecipientReportDto;
 import com.example.bulkemail.dto.ReportSummaryDto;
 import com.example.bulkemail.entity.CampaignRecipient;
 import com.example.bulkemail.repo.CampaignRecipientRepository;
@@ -44,6 +45,21 @@ public class ReportController {
                     .append(clean(recipient.getLastError())).append('\n');
         }
         response.getWriter().write(builder.toString());
+    }
+
+    @GetMapping("/campaigns/{campaignId}/recipients")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','HR_ADMIN','DEPT_ADMIN','AUDITOR','APPROVER','SENDER')")
+    public List<CampaignRecipientReportDto> recipients(@PathVariable Long campaignId) {
+        return recipientRepository.findByCampaignIdOrderByUpdatedAtDesc(campaignId).stream().map(recipient -> {
+            CampaignRecipientReportDto dto = new CampaignRecipientReportDto();
+            dto.setEmail(recipient.getEmail());
+            dto.setFullName(recipient.getFullName());
+            dto.setStatus(recipient.getStatus());
+            dto.setLastError(recipient.getLastError());
+            dto.setRetryCount(recipient.getRetryCount());
+            dto.setUpdatedAt(recipient.getUpdatedAt());
+            return dto;
+        }).toList();
     }
 
     private String clean(String value) {
