@@ -1,0 +1,47 @@
+services:
+  db:
+    image: raton127/mails-campaing-db:latest
+    container_name: bluk-mails-db
+    environment:
+      POSTGRES_DB: bulk_email
+      POSTGRES_USER: bulk_email
+      POSTGRES_PASSWORD: bulk_email
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  backend:
+    image: raton127/mails-campaing-backend:latest
+    container_name: bluk-mails-backend
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=${SERVER_PORT:-8081}
+      - DB_URL=${DB_URL:-jdbc:postgresql://db:5432/bulk_email}
+      - DB_USER=${DB_USER:-bulk_email}
+      - DB_PASSWORD=${DB_PASSWORD:-bulk_email}
+      - OIDC_ISSUER_URI=${OIDC_ISSUER_URI:-http://localhost:8080/realms/dev}
+      - INTERNAL_DOMAINS=${INTERNAL_DOMAINS:-example.com}
+      - DEV_JWT_SECRET=${DEV_JWT_SECRET:-dev-secret-change-me-32-bytes-minimum!!}
+      - APP_ATTACHMENTS_PATH=${APP_ATTACHMENTS_PATH:-/root/Attachments Files}
+      - DEPT_APPROVAL_ENABLED=${DEPT_APPROVAL_ENABLED:-true}
+      - MAX_TEST_RECIPIENTS=${MAX_TEST_RECIPIENTS:-5}
+      - WORKER_POLL_INTERVAL_MS=${WORKER_POLL_INTERVAL_MS:-5000}
+      - WORKER_BATCH_SIZE=${WORKER_BATCH_SIZE:-200}
+      - DEFAULT_THROTTLE_PER_MINUTE=${DEFAULT_THROTTLE_PER_MINUTE:-500}
+      - APP_NOTIFICATION_SMTP_ACCOUNT_ID=${APP_NOTIFICATION_SMTP_ACCOUNT_ID:-0}
+      - APP_NOTIFICATION_SENDER_IDENTITY_ID=${APP_NOTIFICATION_SENDER_IDENTITY_ID:-0}
+      - APP_NOTIFICATION_RESET_BASE_URL=${APP_NOTIFICATION_RESET_BASE_URL:-http://localhost:8080/reset-password}
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  frontend:
+    image: raton127/mails-campaing-frontend:latest
+    container_name: bluk-mails-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
