@@ -7,6 +7,8 @@ import com.example.bulkemail.repo.SmtpAccountRepository;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import java.util.Properties;
 
 @Service
 public class NotificationService {
+    private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
     private final SmtpAccountRepository smtpAccountRepository;
     private final SenderIdentityRepository senderIdentityRepository;
     private final PolicySettingsService policySettingsService;
@@ -35,7 +38,11 @@ public class NotificationService {
     }
 
     public void sendLoginNotice(String toEmail) {
-        sendMessage(toEmail, "Login notification", "A login to the Bulk Email platform was detected for your account.");
+        try {
+            sendMessage(toEmail, "Login notification", "A login to the Bulk Email platform was detected for your account.");
+        } catch (RuntimeException ex) {
+            logger.warn("Login notification skipped: {}", ex.getMessage());
+        }
     }
 
     public void sendPasswordReset(String toEmail, String link) {
